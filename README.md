@@ -19,10 +19,6 @@ This project involves predicting house prices for properties in Bengaluru, KA, b
      - **/predict**: Handles form submissions and displays the predicted house price.
      - **/predict_api**: Provides an API endpoint for getting predictions in JSON format.
 
-## Live Application
-
-Access the deployed application at: **[House Price Prediction App](http://127.0.0.1:5000/)** (Update with actual deployment URL if hosted elsewhere)
-
 ## Running Locally
 
 To run the application locally:
