@@ -1,9 +1,13 @@
-from flask import Flask, request, jsonify, render_template
+from fastapi import FastAPI, Form
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 import pickle
 import os
 import numpy as np
+from fastapi import Request
 
-app = Flask(__name__)
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")  # Assuming home.html is in a 'templates' folder
 
 # Load the model
 with open('xgb_model.pkl', 'rb') as f:
@@ -13,60 +17,41 @@ with open('xgb_model.pkl', 'rb') as f:
 with open('X_columns.pkl', 'rb') as f:
     X_columns = pickle.load(f)
 
-@app.route('/')
-def home():
-    return render_template('home.html')
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse("home.html", {"request": request})
 
-@app.route('/predict_api', methods=['POST'])
-def predict_api():
-    data = request.json
-    
-    # Initialize input features array
+@app.post("/predict")
+async def predict(
+    request: Request,
+    location: str = Form(...),
+    area: str = Form(...),
+    availability: str = Form(...),
+    sqft: float = Form(...),
+    bath: float = Form(...),
+    balcony: float = Form(...),
+    bhk: float = Form(...)
+):
     input_features = np.zeros(len(X_columns))
-    
-    # Basic feature assignments
-    input_features[0] = float(data.get('sqft', 0))
-    input_features[1] = float(data.get('bath', 0))
-    input_features[2] = float(data.get('balcony', 0))
-    input_features[3] = float(data.get('bhk', 0))
+    input_features[0] = sqft
+    input_features[1] = bath
+    input_features[2] = balcony
+    input_features[3] = bhk
 
-    # Handle categorical features
     for feature in ['location', 'area', 'availability']:
-        if feature in data and data[feature] in X_columns:
-            index = np.where(np.array(X_columns) == data[feature])[0][0]
+        if feature in [location, area, availability] and feature in X_columns:
+            index = np.where(np.array(X_columns) == feature)[0][0]
             input_features[index] = 1
 
-    # Ensure input shape is correct
-    input_features = input_features.reshape(1, -1)
-
-    print("Input Features:", input_features)
-    # Making prediction
-    prediction = model.predict(input_features)[0]
-    formatted_prediction = "₹{:.2f}".format(prediction * 100000)
-    
-    return jsonify(formatted_prediction)
-
-@app.route('/predict', methods=['POST'])
-def predict():
-    input_features = np.zeros(len(X_columns))
-    input_features[0] = float(request.form.get('sqft', 0))
-    input_features[1] = float(request.form.get('bath', 0))
-    input_features[2] = float(request.form.get('balcony', 0))
-    input_features[3] = float(request.form.get('bhk', 0))
-    
-    for feature in ['location', 'area', 'availability']:
-        if request.form.get(feature) in X_columns:
-            index = np.where(np.array(X_columns) == request.form.get(feature))[0][0]
-            input_features[index] = 1
-    
     # Ensure input shape is correct
     input_features = input_features.reshape(1, -1)
     
     prediction = model.predict(input_features)[0]
     formatted_prediction = "₹{:.2f}".format(prediction * 100000)
     
-    return render_template('home.html', prediction_text=f"The estimated house price is {formatted_prediction}.")
+    return templates.TemplateResponse("home.html", {"request": request, "prediction_text": f"The estimated house price is {formatted_prediction}."})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, port=port)
+    port = int(os.environ.get('PORT', 8000))
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=port)
