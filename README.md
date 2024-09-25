@@ -55,3 +55,12 @@ To run the application locally:
    docker run --name house-price-container -p 5000:5000 house-price-app
    ```
    The app will be available at http://127.0.0.1:5000/
+
+## Deployment
+
+   To deploy your own version, ensure Docker is installed and follow the above local setup 
+   steps. You can deploy using a cloud service that supports Docker containers.
+
+## Contributing
+
+   Contributions are welcome! Feel free to open issues or submit pull requests.
